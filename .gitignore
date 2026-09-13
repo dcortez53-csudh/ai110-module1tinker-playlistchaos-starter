@@ -4,3 +4,4 @@ __pycache__/
 .idea/
 .agents/
 .claude/
+commands.txt
