@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.envrc
+.idea/
+.agents/
+.claude/
