@@ -27,8 +27,10 @@ def normalize_artist(artist: str) -> str:
 
 
 def normalize_genre(genre: str) -> str:
+    if not isinstance(genre, str):
+        return ""
     """Normalize a genre name for comparisons."""
-    return genre.lower().strip()
+    return genre.strip().lower()
 
 
 def normalize_song(raw: Song) -> Song:
@@ -65,7 +67,7 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
 
     hype_min_energy = profile.get("hype_min_energy", 7)
     chill_max_energy = profile.get("chill_max_energy", 3)
-    favorite_genre = profile.get("favorite_genre", "")
+    favorite_genre = normalize_genre(str(profile.get("favorite_genre", "")))
 
     hype_keywords = ["rock", "punk", "party"]
     chill_keywords = ["lofi", "ambient", "sleep"]
@@ -73,10 +75,12 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     is_hype_keyword = any(k in genre for k in hype_keywords)
     is_chill_keyword = any(k in title for k in chill_keywords)
 
-    if genre == favorite_genre or energy >= hype_min_energy or is_hype_keyword:
-        return "Hype"
-    if energy <= chill_max_energy or is_chill_keyword:
+    if energy == chill_max_energy and is_chill_keyword:
         return "Chill"
+    if energy >= hype_min_energy or is_hype_keyword:
+        return "Hype"
+    if genre == favorite_genre:
+        return "Hype"
     return "Mixed"
 
 
@@ -116,12 +120,12 @@ def compute_playlist_stats(playlists: PlaylistMap) -> Dict[str, object]:
     chill = playlists.get("Chill", [])
     mixed = playlists.get("Mixed", [])
 
-    total = len(hype)
-    hype_ratio = len(hype) / total if total > 0 else 0.0
+    total_songs = len(all_songs)
+    hype_ratio = len(hype) / total_songs if total_songs > 0 else 0.0
 
     avg_energy = 0.0
     if all_songs:
-        total_energy = sum(song.get("energy", 0) for song in hype)
+        total_energy = sum(song.get("energy", 0) for song in all_songs)
         avg_energy = total_energy / len(all_songs)
 
     top_artist, top_count = most_common_artist(all_songs)
