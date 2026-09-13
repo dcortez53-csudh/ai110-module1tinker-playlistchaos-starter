@@ -11,6 +11,9 @@ DEFAULT_PROFILE = {
     "include_mixed": True,
 }
 
+HYPE_KEYWORDS = ("rock", "punk", "party")
+CHILL_KEYWORDS = ("lofi", "ambient", "sleep")
+
 
 def normalize_title(title: str) -> str:
     """Normalize a song title for comparisons."""
@@ -27,9 +30,9 @@ def normalize_artist(artist: str) -> str:
 
 
 def normalize_genre(genre: str) -> str:
+    """Normalize a genre name for comparisons."""
     if not isinstance(genre, str):
         return ""
-    """Normalize a genre name for comparisons."""
     return genre.strip().lower()
 
 
@@ -69,17 +72,14 @@ def classify_song(song: Song, profile: Dict[str, object]) -> str:
     chill_max_energy = profile.get("chill_max_energy", 3)
     favorite_genre = normalize_genre(str(profile.get("favorite_genre", "")))
 
-    hype_keywords = ["rock", "punk", "party"]
-    chill_keywords = ["lofi", "ambient", "sleep"]
+    is_hype_keyword = any(k in genre for k in HYPE_KEYWORDS)
+    is_chill_keyword = any(k in title for k in CHILL_KEYWORDS)
 
-    is_hype_keyword = any(k in genre for k in hype_keywords)
-    is_chill_keyword = any(k in title for k in chill_keywords)
-
-    if energy == chill_max_energy and is_chill_keyword:
+    # Chill takes priority: low energy OR a chill keyword in the title.
+    if energy <= chill_max_energy or is_chill_keyword:
         return "Chill"
-    if energy >= hype_min_energy or is_hype_keyword:
-        return "Hype"
-    if genre == favorite_genre:
+    # Hype: high energy, hype keyword in genre, or favorite genre match.
+    if energy >= hype_min_energy or is_hype_keyword or genre == favorite_genre:
         return "Hype"
     return "Mixed"
 
@@ -172,7 +172,8 @@ def search_songs(
 
     for song in songs:
         value = str(song.get(field, "")).lower()
-        if value and value in q:
+        # Match when the query is contained within the song's field.
+        if value and q in value:
             filtered.append(song)
 
     return filtered
@@ -188,15 +189,21 @@ def lucky_pick(
     elif mode == "chill":
         songs = playlists.get("Chill", [])
     else:
-        songs = playlists.get("Hype", []) + playlists.get("Chill", [])
+        songs = (
+            playlists.get("Hype", [])
+            + playlists.get("Chill", [])
+            + playlists.get("Mixed", [])
+        )
 
     return random_choice_or_none(songs)
 
 
 def random_choice_or_none(songs: List[Song]) -> Optional[Song]:
-    """Return a random song or None."""
+    """Return a random song or None if the list is empty."""
     import random
 
+    if not songs:
+        return None
     return random.choice(songs)
 
 
